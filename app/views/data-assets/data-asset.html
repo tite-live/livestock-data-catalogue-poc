@@ -6,78 +6,129 @@
 {% from "govuk/components/warning-text/macro.njk" import govukWarningText %}
 {% from "partials/summary-value.html" import appSummaryValue %}
 
+{% set pageName = titleName %}
+
 {% block containerStart %}
-  {{ govukBreadcrumbs({
-    collapseOnMobile: true,
-    items: [
-      { text: "Home", href: "/" },
-      { text: "Data assets", href: "/data-assets" }
-    ]
-  }) }}
+{{ govukBreadcrumbs({
+collapseOnMobile: true,
+items: [
+{ text: "Home", href: "/" },
+{ text: "Data assets", href: "/data-assets" }
+]
+}) }}
 {% endblock %}
 
 {% block content %}
-  <div class="govuk-grid-row">
-    <div class="govuk-grid-column-two-thirds">
-      <span class="govuk-caption-l">Data asset</span>
-      <h1 class="govuk-heading-l">{{ titleName }}</h1>
-
+{# Row 1: Full two-thirds page title header #}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <span class="govuk-caption-xl">Data asset</span>
+    <h1 class="govuk-heading-xl govuk-!-margin-bottom-4 app-asset-header__title">
+      {{ titleName }}
       {% if isDeprecated %}
-        <p class="govuk-body">
-          {{ govukTag({ text: "Deprecated", classes: "govuk-tag--grey" }) }}
-        </p>
-        {% set replacementHtml -%}
-          This data asset is being replaced.
-          {%- if replacement %} Use <a class="govuk-link" href="{{ replacement.href }}">{{ replacement.titleName }}</a> instead.{% endif %}
-        {%- endset %}
-        {{ govukWarningText({
-          html: replacementHtml,
-          iconFallbackText: "Warning"
-        }) }}
+      {{ govukTag({ text: "Deprecated", classes: "govuk-tag--grey app-asset-header__tag" }) }}
       {% endif %}
-
-      <p class="govuk-body-l">{{ description }}</p>
-
-      {% for section in sections %}
-        <h2 class="govuk-heading-m">{{ section.heading }}</h2>
-        {% set summaryRows = [] %}
-        {% for row in section.rows %}
-          {% set summaryRows = summaryRows.concat([{
-            key: { text: row.key },
-            value: { html: appSummaryValue(row) }
-          }]) %}
-        {% endfor %}
-        {{ govukSummaryList({ rows: summaryRows }) }}
-      {% endfor %}
-
-      <h2 class="govuk-heading-m">Ways to get this data</h2>
-      {% for distribution in distributions %}
-        {% set distributionRows = [] %}
-        {% for row in distribution.rows %}
-          {% set distributionRows = distributionRows.concat([{
-            key: { text: row.key },
-            value: { html: appSummaryValue(row) }
-          }]) %}
-        {% endfor %}
-        {{ govukSummaryList({
-          card: {
-            title: { text: distribution.name, headingLevel: 3 }
-          },
-          rows: distributionRows
-        }) }}
-      {% endfor %}
-
-      {% if relatedGroups | length %}
-        <h2 class="govuk-heading-m">Related data assets and resources</h2>
-        {% for group in relatedGroups %}
-          <h3 class="govuk-heading-s">{{ group.heading }}</h3>
-          <ul class="govuk-list">
-            {% for link in group.links %}
-              <li><a class="govuk-link" href="{{ link.href }}">{{ link.text }}</a></li>
-            {% endfor %}
-          </ul>
-        {% endfor %}
-      {% endif %}
-    </div>
+    </h1>
   </div>
+</div>
+
+{# Row 2: Two-thirds main content + one-third Related content sidebar aligned to the body #}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    {% if isDeprecated %}
+    {% set replacementHtml -%}
+    This data asset is deprecated and is being replaced.
+    {%- if replacement %} Use <a class="govuk-link" href="{{ replacement.href }}">{{ replacement.titleName }}</a>
+    instead.{% endif %}
+    {%- endset %}
+    {{ govukWarningText({
+    html: replacementHtml,
+    iconFallbackText: "Warning"
+    }) }}
+    {% endif %}
+
+    <p class="govuk-body-l">{{ description }}</p>
+
+    {# GOV.UK Publishing Contents List component (gem-c-contents-list) #}
+    {% if sections | length %}
+    <nav class="gem-c-contents-list govuk-!-margin-bottom-8" aria-label="Contents" role="navigation">
+      <h2 class="gem-c-contents-list__title">Contents</h2>
+      <ol class="gem-c-contents-list__list">
+        {% for section in sections %}
+        <li class="gem-c-contents-list__list-item gem-c-contents-list__list-item--dashed">
+          <a class="gem-c-contents-list__link govuk-link govuk-link--no-underline" href="#section-{{ loop.index }}">
+            {{ section.heading }}
+          </a>
+        </li>
+        {% endfor %}
+        <li class="gem-c-contents-list__list-item gem-c-contents-list__list-item--dashed">
+          <a class="gem-c-contents-list__link govuk-link govuk-link--no-underline" href="#ways-to-get-this-data">
+            Ways to get this data
+          </a>
+        </li>
+      </ol>
+    </nav>
+    {% endif %}
+
+    {# Metadata summary sections #}
+    {% for section in sections %}
+    <section class="govuk-!-margin-bottom-7" aria-labelledby="section-{{ loop.index }}">
+      <h2 class="govuk-heading-m" id="section-{{ loop.index }}">{{ section.heading }}</h2>
+      {% set summaryRows = [] %}
+      {% for row in section.rows %}
+      {% set summaryRows = summaryRows.concat([{
+      key: { text: row.key },
+      value: { html: appSummaryValue(row) }
+      }]) %}
+      {% endfor %}
+      {{ govukSummaryList({ rows: summaryRows }) }}
+    </section>
+    {% endfor %}
+
+    {# Distributions rendered as GDS Summary Cards #}
+    <section aria-labelledby="ways-to-get-this-data">
+      <h2 class="govuk-heading-m" id="ways-to-get-this-data">Ways to get this data</h2>
+      {% if distributions | length %}
+      {% for distribution in distributions %}
+      {% set distributionRows = [] %}
+      {% for row in distribution.rows %}
+      {% set distributionRows = distributionRows.concat([{
+      key: { text: row.key },
+      value: { html: appSummaryValue(row) }
+      }]) %}
+      {% endfor %}
+      {{ govukSummaryList({
+      card: {
+      title: { text: distribution.name, headingLevel: 3 }
+      },
+      rows: distributionRows
+      }) }}
+      {% endfor %}
+      {% else %}
+      <p class="govuk-body">There are no distributions listed for this data asset.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  {# Standard GDS 1/3 right-hand sidebar aligned with the start of body content #}
+  {% if relatedGroups | length %}
+  <div class="govuk-grid-column-one-third">
+    <aside class="app-related-items" role="complementary" aria-labelledby="related-heading">
+      <h2 class="govuk-heading-m govuk-!-margin-bottom-3" id="related-heading">
+        Related content
+      </h2>
+      {% for group in relatedGroups %}
+      <h3 class="govuk-heading-s govuk-!-margin-bottom-2">{{ group.heading }}</h3>
+      <ul class="govuk-list govuk-!-font-size-16 govuk-!-margin-bottom-4">
+        {% for link in group.links %}
+        <li>
+          <a class="govuk-link" href="{{ link.href }}">{{ link.text }}</a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endfor %}
+    </aside>
+  </div>
+  {% endif %}
+</div>
 {% endblock %}
